@@ -1,3 +1,4 @@
+LD?=ld
 
 .PHONY: clean all
 
@@ -13,10 +14,12 @@ boot.o: boot.S
 	nasm -felf32 -o boot.o boot.S
 
 kernel.elf: boot.o multiboot.o forth.o kernel.lds
-	ld -n -T kernel.lds -o kernel.elf boot.o multiboot.o forth.o
+	$(LD) -n -T kernel.lds -o kernel.elf boot.o multiboot.o forth.o
 
 clean:
-	rm -f *.o kernel.elf
+	rm -f *.o kernel.elf *.fbin
 
 run: kernel.elf
 	qemu-system-i386 -kernel kernel.elf -curses
+run2: kernel.elf
+	qemu-system-i386 -kernel kernel.elf
