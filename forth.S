@@ -160,7 +160,7 @@ defcode 'OVER', OVER
     push eax
     NEXT
 
-; Rotate stack entries (1,2,3->2,1,3)
+; Rotate stack entries (1,2,3->3,1,2->2,3,1)
 defcode 'ROT', ROT
     pop eax
     pop ebx
@@ -170,7 +170,7 @@ defcode 'ROT', ROT
     push ecx
     NEXT
 
-; Reserve rotate stack entries (1,2,3->1,3,2)
+; Reserve rotate stack entries (1,2,3->2,3,1)
 defcode '-ROT', NROT
     pop eax
     pop ebx
@@ -439,8 +439,8 @@ defcode 'C@', FETCHBYTE
 ;TODO CMOVE
 
 defvar 'STATE', STATE
-extern _end
-defvar 'HERE', HERE, _end
+extern __end
+defvar 'HERE', HERE, __end
 defvar 'LATEST', LATEST, BYE
 defvar 'BASE', BASE, 10
 defvar '>IN', TIN
@@ -669,11 +669,15 @@ defword ';', SEMICOLON, F_IMMED
     dd EXIT.cfa ; Return
 
 defcode 'IMMEDIATE', IMMEDIATE, F_IMMED
-    xor byte [var_LATEST+4], F_IMMED
+		mov edi, [var_LATEST]
+		add edi, 4
+    xor byte [edi], F_IMMED
     NEXT
 
 defcode 'HIDDEN', HIDDEN
-    xor byte [var_LATEST+4], F_HIDDEN
+    pop edi
+		add edi, 4
+    xor byte [edi], F_HIDDEN
     NEXT
 
 ;TODO HIDE
@@ -722,9 +726,8 @@ defword 'INTERPRET', INTERPRET
 
     ; It's a number
     dd NUMBER.cfa
-    dd DROP.cfa ; Skip error state
-    ;dd ZBRANCH.cfa, 8 ; Skip over non numbers for now
-    ;dd EXIT.cfa
+    dd ZBRANCH.cfa, 12 ; Skip over non numbers for now
+    dd DROP.cfa, EXIT.cfa
     dd STATE.cfa, FETCH.cfa, ZBRANCH.cfa, 20
     ; Compile mode
     ; Something seems to be wrong here...
