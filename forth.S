@@ -633,8 +633,6 @@ defcode 'CREATE', CREATE
     mov [var_HERE], edi
     NEXT
 
-;TODO Double check this at runtime
-; the [] might be wrong?
 defcode ',', COMMA
     pop eax
     mov edi, [var_HERE]
@@ -669,14 +667,14 @@ defword ';', SEMICOLON, F_IMMED
     dd EXIT.cfa ; Return
 
 defcode 'IMMEDIATE', IMMEDIATE, F_IMMED
-		mov edi, [var_LATEST]
-		add edi, 4
+	mov edi, [var_LATEST]
+	add edi, 4
     xor byte [edi], F_IMMED
     NEXT
 
 defcode 'HIDDEN', HIDDEN
     pop edi
-		add edi, 4
+	add edi, 4
     xor byte [edi], F_HIDDEN
     NEXT
 
