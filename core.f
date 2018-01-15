@@ -1,0 +1,11 @@
+
+
+: XXXX
+PRINT_OK
+16 BASE !
+2F4B2F52 B8000 !
+;
+
+XXXX
+
+BYE
