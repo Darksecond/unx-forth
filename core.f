@@ -1,6 +1,30 @@
+: KEY  >IN @ SOURCE-ADDR @ + C@ 1 >IN +! ;
+: ( IMMEDIATE KEY 41 <> ' 0BRANCH , -16 ;
 
+
+(
+    We now have very basic comment support.
+    No support yet for nesting comments.
+)
+
+( Basic TRUE/FALSE and NOT )
+: TRUE  1 ;
+: FALSE 0 ;
+: NOT 0= ;
+
+( Various bases )
 : HEX 16 BASE ! ;
+: BINARY 2 BASE ! ;
+: OCTAL 8 BASE ! ;
 : DECIMAL 10 BASE ! ;
+
+( Compile immediate word instead of executing directly )
+: [COMPILE] IMMEDIATE
+    WORD
+    FIND
+    >CFA
+    ,
+;
 
 : BEGIN IMMEDIATE
     HERE @
@@ -18,6 +42,11 @@
     0 ,
 ;
 
+: UNLESS IMMEDIATE
+    ' NOT ,
+    [COMPILE] IF ( Execute IF as part of unless )
+;
+
 : THEN IMMEDIATE
     DUP
     HERE @ SWAP -
@@ -25,35 +54,83 @@
 ;
 
 : ELSE IMMEDIATE
-	' BRANCH ,
-	HERE @
-	0 ,
-	SWAP
-	DUP
-	HERE @ SWAP -
-	SWAP !
+    ' BRANCH ,
+    HERE @
+    0 ,
+    SWAP
+    DUP
+    HERE @ SWAP -
+    SWAP !
 ;
 
-: CHAR WORD DROP C@ ;
+: WHILE IMMEDIATE
+    ' 0BRANCH ,
+    HERE @
+    0 ,
+;
 
+: REPEAT IMMEDIATE
+    ' BRANCH ,
+    SWAP
+    HERE @ - ,
+    DUP
+    HERE @ SWAP -
+    SWAP !
+;
+
+: AGAIN IMMEDIATE
+    ' BRANCH ,
+    HERE @ -
+    ,
+;
+
+(
+    There are used in various ways.
+
+    IF
+        ...
+    ELSE
+        ...
+    THEN
+
+    BEGIN
+        ...
+    0= UNTIL
+
+    BEGIN
+        ...
+        0<>
+    WHILE
+        ...
+    REPEAT
+
+    BEGIN
+        ...
+    AGAIN
+)
+
+( Grab the first character of the next word )
+: CHAR ( -- char )
+    WORD DROP C@
+;
+
+( Compile the top of the stack as a literal like LIT <cell> )
 : LITERAL IMMEDIATE
     ' LIT ,
     ,
 ;
 
+(
+    Define some literals for various characters used later on.
+)
 : '(' [ CHAR ( ] LITERAL ;
 : ')' [ CHAR ) ] LITERAL ;
+: '"' [ CHAR " ] LITERAL ;
 
-: >IN++@
-    >IN @
-    DUP 1+ >IN !
-;
-
-: KEY
-    >IN++@ SOURCE-ADDR @ +
-    C@
-;
-
+(
+    Here we build a better comment sytem.
+    One which supports nesting, but this needs a bunch of conditional logic and loops.
+)
 : ( IMMEDIATE
     1
     BEGIN
@@ -124,43 +201,143 @@
     ' EXIT ,
 ;
 
-(
-    Start of VGA stuff, including EMIT
-)
-HEX ( Switch into immediate mode because numbers are compiled right now, not later )
-
-B8000 CONSTANT VGA-BASE
-
-( TODO Rewrite this to row + column )
-VARIABLE VGA>IN 0 VGA>IN !
-
-: VGA>CURRENT++
-    VGA>IN @
-    1 VGA>IN +!
-    VGA-BASE +
+( Store single byte at HERE )
+: C, ( char -- )
+    HERE @ C!
+    1 HERE +!
 ;
 
-: EMIT ( n -- )
-    VGA>CURRENT++ C!
-    2F VGA>CURRENT++ C!
+: ALIGNED ( addr -- addr )
+    3 + 3 INVERT AND
 ;
 
-( TODO TYPE )
-( TODO CR )
+: ALIGN ( -- )
+    HERE @ ALIGNED HERE !
+;
 
-DECIMAL
+: CELL- ( addr -- addr ) CELL - ;
+: CELL+ ( addr -- addr ) CELL + ;
+
+: >DFA ( addr -- addr )
+    >CFA
+    CELL+
+;
+
 (
-    End of VGA stuff
+    This uses HERE @ for temporary string storage in immediate mode.
+    We could replace this with PAD or some other data section instead.
+
+    In compiling mode it writes a LISTRING, length, string
+    Length is a CELL long (4 bytes)
+    LITSTRING then skips the length + string, leaving them on the stack
 )
+: S" IMMEDIATE ( -- addr len )
+    STATE @ IF ( Compiling )
+        ' LITSTRING ,
+        HERE @ ( Save addr to length word )
+        0 , ( Write undefined length )
+        BEGIN
+            KEY
+        DUP '"' <> WHILE
+            C, ( Write character )
+        REPEAT
+        DROP
+        DUP
+        HERE @ SWAP -
+        CELL-
+        SWAP !
+        ALIGN
+    ELSE ( Immediate )
+        HERE @
+        BEGIN
+            KEY
+        DUP '"' <> WHILE
+            OVER C!
+            1+
+        REPEAT
+        DROP
+        HERE @ -
+        HERE @
+        SWAP
+    THEN
+;
+
+( Some vga constants )
+HEX B8000 CONSTANT VGA-BASE DECIMAL
+80 CONSTANT VGA-WIDTH
+25 CONSTANT VGA-HEIGHT
+VGA-WIDTH VGA-HEIGHT * 2 * CONSTANT VGA-MEMSIZE
+
+: VGA-OFFSET>CORDS ( offset -- row col ) VGA-WIDTH /MOD SWAP ;
+: VGA-CORDS>OFFSET ( row col -- offset ) SWAP VGA-WIDTH * + ;
+: VGA-OFFSET ( row col  -- offset ) VGA-CORDS>OFFSET 2 * VGA-BASE + ;
+: VGA-GLYPH! ( glyph row col -- ) VGA-OFFSET C! ;
+: VGA-ATTR! ( attr row col -- ) VGA-OFFSET 1+ C! ;
+
+VARIABLE CURSOR-X 0 CURSOR-X !
+VARIABLE CURSOR-Y 0 CURSOR-Y !
+
+: CURSOR@ ( -- row col )
+    CURSOR-Y @
+    CURSOR-X @
+;
+
+( At end of line )
+: CURSOR-EOL? ( -- bool )
+    CURSOR-X @ VGA-WIDTH =
+;
+
+( TODO Rename? )
+: CURSOR-AT-LAST-LINE? ( -- bool )
+    CURSOR-Y @ VGA-HEIGHT =
+;
+
+: CR ( -- )
+    0 CURSOR-X !
+    1 CURSOR-Y +!
+    ( TODO SCROLL )
+;
+
+( TODO Support newlines )
+: EMIT ( char -- )
+    CURSOR@ VGA-GLYPH!
+    47 CURSOR@ VGA-ATTR! ( Replace with proper variable )
+    1 CURSOR-X +!
+    CURSOR-EOL? IF CR THEN
+;
+
+: TYPE ( addr len -- )
+    BEGIN
+        SWAP DUP @ EMIT
+        1+
+        SWAP 1-
+        ?DUP 0= UNTIL
+    DROP
+;
+
+: ." IMMEDIATE ( -- )
+    STATE @ IF ( Compiling )
+            [COMPILE] S"
+            ' TYPE ,
+    ELSE ( Immediate )
+        BEGIN
+            KEY
+            DUP '"' = IF
+                DROP EXIT
+            THEN
+            EMIT
+        AGAIN
+    THEN
+;
 
 : PRINT_OK
-    [ CHAR O ] LITERAL EMIT
-    [ CHAR K ] LITERAL EMIT
+    ." OK"
 ;
 
-CR
 PRINT_OK
 CR
-PRINT_OK
+S" TEST" TYPE
+CR
+." Loading..."
 
 BYE

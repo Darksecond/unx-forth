@@ -222,14 +222,6 @@ defcode '1-', DECR
     dec dword [esp]
     NEXT
 
-defcode '4+', INCR4
-    add dword [esp], 4
-    NEXT
-
-defcode '4-', DECR4
-    sub dword [esp], 4
-    NEXT
-
 defcode '+', ADD
     pop eax
     add [esp], eax
@@ -605,11 +597,6 @@ defcode '>CFA', TCFA
     push edi
     NEXT
 
-defword '>DFA', TDFA
-    dd TCFA.cfa
-    dd INCR4.cfa
-    dd EXIT.cfa
-
 defcode 'CREATE', CREATE
     pop ecx ; length
     pop ebx ; addr of name
@@ -753,18 +740,14 @@ defcode '0BRANCH', ZBRANCH
     lodsd ; Skip the offset cell
     NEXT
 
-; Prints ok
-; TEMP
-defword 'PRINT_OK', PRINT_OK
-    dd LIT.cfa, 0x2f4b2f4f ; 'OK' with added color bytes
-    dd LIT.cfa, 0xb8000 ; First 2 characters
-    dd STORE.cfa
-    dd EXIT.cfa
-defword 'PRINT_OP', PRINT_OP
-    dd LIT.cfa, 0x2f4b2f50 ; 'OP' with added color bytes
-    dd LIT.cfa, 0xb8000 ; First 2 characters
-    dd STORE.cfa
-    dd EXIT.cfa
+defcode 'LITSTRING', LITSTRING
+    lodsd
+    push esi ; push addr
+    push eax ; push length
+    add esi, eax ; Skip past string
+    add esi, 3
+    and esi, ~3 ; Align
+    NEXT
 
 ; Runs the 'hlt' instruction
 defcode 'HALT', HALT
