@@ -1,4 +1,4 @@
-: KEY  >IN @ SOURCE-ADDR @ + C@ 1 >IN +! ;
+: KEY >IN @ SOURCE-ADDR @ + C@ 1 >IN +! ;
 : ( IMMEDIATE KEY 41 <> ' 0BRANCH , -16 ;
 
 
@@ -8,6 +8,7 @@
 )
 
 ( Basic TRUE/FALSE and NOT )
+( Like jonesforth these are not standards compliant )
 : TRUE  1 ;
 : FALSE 0 ;
 : NOT 0= ;
@@ -169,6 +170,8 @@
     ' EXIT , ( append exit word)
 ;
 
+32 CONSTANT BL
+
 (
     Now is a good time to explain word comments, like in ALLOT
     They show the stack before and after running the word.
@@ -276,6 +279,7 @@ VGA-WIDTH VGA-HEIGHT * 2 * CONSTANT VGA-MEMSIZE
 
 VARIABLE CURSOR-X 0 CURSOR-X !
 VARIABLE CURSOR-Y 0 CURSOR-Y !
+VARIABLE CURSOR-ATTR HEX 0F CURSOR-ATTR ! DECIMAL
 
 : CURSOR@ ( -- row col )
     CURSOR-Y @
@@ -287,23 +291,61 @@ VARIABLE CURSOR-Y 0 CURSOR-Y !
     CURSOR-X @ VGA-WIDTH =
 ;
 
-( TODO Rename? )
-: CURSOR-AT-LAST-LINE? ( -- bool )
+( At last line )
+: CURSOR-LAST-LINE? ( -- bool )
     CURSOR-Y @ VGA-HEIGHT =
+;
+
+: SCROLL-SINGLE-LINE
+    1 0 VGA-OFFSET ( Source )
+    0 0 VGA-OFFSET ( Destination )
+    VGA-MEMSIZE VGA-WIDTH 2 * -
+    CMOVE
+;
+
+: CLEAR-CHAR ( row col -- )
+    0 -ROT VGA-GLYPH!
+    2DUP 0 -ROT VGA-ATTR!
+;
+
+: CLEAR-LINE ( n -- )
+    0
+    BEGIN
+        2DUP CLEAR-CHAR
+        1+
+    DUP VGA-WIDTH = UNTIL
+    2DROP
+;
+
+: SCROLL-IF-REQUIRED
+    CURSOR-LAST-LINE? IF
+        CURSOR-X 0 !
+        VGA-HEIGHT 1- CURSOR-Y !
+        SCROLL-SINGLE-LINE
+        VGA-HEIGHT 1- CLEAR-LINE
+    THEN
 ;
 
 : CR ( -- )
     0 CURSOR-X !
     1 CURSOR-Y +!
-    ( TODO SCROLL )
+    SCROLL-IF-REQUIRED
 ;
 
-( TODO Support newlines )
+( TODO Support '\n' )
 : EMIT ( char -- )
     CURSOR@ VGA-GLYPH!
-    47 CURSOR@ VGA-ATTR! ( Replace with proper variable )
+    CURSOR-ATTR @ CURSOR@ VGA-ATTR! ( Replace with proper variable )
     1 CURSOR-X +!
     CURSOR-EOL? IF CR THEN
+;
+
+: SPACE ( -- ) BL EMIT ;
+: SPACES ( n -- )
+    BEGIN
+        SPACE
+        1-
+    ?DUP 0= UNTIL
 ;
 
 : TYPE ( addr len -- )
@@ -335,9 +377,32 @@ VARIABLE CURSOR-Y 0 CURSOR-Y !
 ;
 
 PRINT_OK
-CR
-S" TEST" TYPE
-CR
-." Loading..."
+CR S" TEST" TYPE
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." H..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." Loading..."
+CR ." H"
+CR 12 SPACES ." TEST"
 
 BYE

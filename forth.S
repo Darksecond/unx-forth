@@ -428,7 +428,16 @@ defcode 'C@', FETCHBYTE
     NEXT
 
 ;TODO C@C!
-;TODO CMOVE
+
+; CMOVE is in assembler for speed
+defcode 'CMOVE', CMOVE
+    mov edx, esi ; Preserve esi
+    pop ecx ; length
+    pop edi ; destination
+    pop esi ; source
+    rep movsb ; copy
+    mov esi, edx
+    NEXT
 
 defvar 'STATE', STATE
 extern __end
