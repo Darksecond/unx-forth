@@ -1,8 +1,15 @@
 : (KEY) >IN @ SOURCE-ADDR @ + C@ 1 >IN +! ;
-
-: ( IMMEDIATE 
-    (KEY) 41 = 0BRANCH [ -20 , ]
-;
+: ( IMMEDIATE  (KEY) 41 = 0BRANCH [ -20 , ] ;
+(
+    This sets up very early version of comments.
+    It has no support for nesting and lots of other missing features.
+)
+(
+    Now is a good time to explain word comments, like in ALLOT
+    They show the stack before and after running the word.
+    stack top is on the right.
+    So: ( a b c <- TOP -- c b a <- TOP )
+)
 
 ( Compile immediate word instead of executing directly )
 : [COMPILE] IMMEDIATE
@@ -18,23 +25,16 @@
     ,
 ;
 
-: '
-    WORD FIND >CFA
-;
+: ' ( -- xt ) WORD FIND >CFA ;
 
 : ['] IMMEDIATE
     '
     [COMPILE] LITERAL
 ;
 
-(
-    We now have very basic comment support.
-    No support yet for nesting comments.
-)
-
 ( Basic TRUE/FALSE and NOT )
 ( Like jonesforth these are not standards compliant )
-: TRUE  1 ;
+: TRUE  1 ; ( Think about making this -1 instead, we would have to change stuff in assembler as well )
 : FALSE 0 ;
 : NOT 0= ;
 
@@ -103,36 +103,17 @@
     ,
 ;
 
-(
-    There are used in various ways.
-
-    IF
-        ...
-    ELSE
-        ...
-    THEN
-
-    BEGIN
-        ...
-    0= UNTIL
-
-    BEGIN
-        ...
-        0<>
-    WHILE
-        ...
-    REPEAT
-
-    BEGIN
-        ...
-    AGAIN
-)
-
 ( Grab the first character of the next word )
 : CHAR ( -- char )
     WORD DROP C@
 ;
 
+(
+    Define some literals for various characters used later on.
+)
+: '(' [ CHAR ( ] LITERAL ;
+: ')' [ CHAR ) ] LITERAL ;
+: '"' [ CHAR " ] LITERAL ;
 
 : NOP ;
 : DEFER
@@ -158,13 +139,6 @@
 
 DEFER KEY
 ' (KEY) IS KEY
-
-(
-    Define some literals for various characters used later on.
-)
-: '(' [ CHAR ( ] LITERAL ;
-: ')' [ CHAR ) ] LITERAL ;
-: '"' [ CHAR " ] LITERAL ;
 
 (
     Here we build a better comment sytem.
@@ -208,14 +182,7 @@ DEFER KEY
     ['] EXIT , ( append exit word)
 ;
 
-32 CONSTANT BL
-
-(
-    Now is a good time to explain word comments, like in ALLOT
-    They show the stack before and after running the word.
-    stack top is on the right.
-    So: ( a b c <- TOP -- c b a <- TOP )
-)
+32 CONSTANT BL ( -- char )
 
 (
     Allocate X amount of bytes at HERE.

@@ -278,6 +278,9 @@ defcode '<', LT
     push eax
     NEXT
 
+;TODO 'U<' (setb)
+;TODO 'U>' (seta)
+
 defcode '>', GT
     pop eax
     pop ebx
@@ -461,6 +464,7 @@ defcode 'R>', FROMR
     push eax
     NEXT
 
+;TODO R@ (Copy from return stack)
 ;TODO RSP@
 
 defcode 'RSP!', RSPSTORE
