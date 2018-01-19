@@ -1,6 +1,31 @@
 : (KEY) >IN @ SOURCE-ADDR @ + C@ 1 >IN +! ;
-: ( IMMEDIATE (KEY) 41 <> ['] 0BRANCH , -16 ;
 
+: ( IMMEDIATE 
+    (KEY) 41 = 0BRANCH [ -20 , ]
+;
+
+( Compile immediate word instead of executing directly )
+: [COMPILE] IMMEDIATE
+    WORD
+    FIND
+    >CFA
+    ,
+;
+
+( Compile the top of the stack as a literal like LIT <cell> )
+: LITERAL IMMEDIATE
+    LIT LIT ,
+    ,
+;
+
+: '
+    WORD FIND >CFA
+;
+
+: ['] IMMEDIATE
+    '
+    [COMPILE] LITERAL
+;
 
 (
     We now have very basic comment support.
@@ -19,13 +44,6 @@
 : OCTAL 8 BASE ! ;
 : DECIMAL 10 BASE ! ;
 
-( Compile immediate word instead of executing directly )
-: [COMPILE] IMMEDIATE
-    WORD
-    FIND
-    >CFA
-    ,
-;
 
 : BEGIN IMMEDIATE
     HERE @
@@ -115,11 +133,6 @@
     WORD DROP C@
 ;
 
-( Compile the top of the stack as a literal like LIT <cell> )
-: LITERAL IMMEDIATE
-    ['] LIT ,
-    ,
-;
 
 : NOP ;
 : DEFER
@@ -128,13 +141,6 @@
     ['] NOP ,
     ['] EXIT ,
 ;
-
-: '
-    WORD FIND >CFA
-;
-
-( TODO Redefine ['] )
-( TODO Look into ' and ['] again, also are they immediate? )
 
 : DEFER!
     4 + !

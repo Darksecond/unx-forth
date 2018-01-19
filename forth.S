@@ -684,11 +684,6 @@ defcode 'HIDDEN', HIDDEN
 
 ;TODO HIDE
 
-defcode "[']", BTICK
-    lodsd
-    push eax
-    NEXT
-
 ;TODO TELL
 ;TODO QUIT
 
