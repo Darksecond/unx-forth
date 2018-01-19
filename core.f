@@ -1,5 +1,5 @@
-: KEY >IN @ SOURCE-ADDR @ + C@ 1 >IN +! ;
-: ( IMMEDIATE KEY 41 <> ' 0BRANCH , -16 ;
+: (KEY) >IN @ SOURCE-ADDR @ + C@ 1 >IN +! ;
+: ( IMMEDIATE (KEY) 41 <> ['] 0BRANCH , -16 ;
 
 
 (
@@ -32,19 +32,19 @@
 ;
 
 : UNTIL IMMEDIATE
-    ' 0BRANCH ,
+    ['] 0BRANCH ,
     HERE @ -
     ,
 ;
 
 : IF IMMEDIATE
-    ' 0BRANCH ,
+    ['] 0BRANCH ,
     HERE @
     0 ,
 ;
 
 : UNLESS IMMEDIATE
-    ' NOT ,
+    ['] NOT ,
     [COMPILE] IF ( Execute IF as part of unless )
 ;
 
@@ -55,7 +55,7 @@
 ;
 
 : ELSE IMMEDIATE
-    ' BRANCH ,
+    ['] BRANCH ,
     HERE @
     0 ,
     SWAP
@@ -65,13 +65,13 @@
 ;
 
 : WHILE IMMEDIATE
-    ' 0BRANCH ,
+    ['] 0BRANCH ,
     HERE @
     0 ,
 ;
 
 : REPEAT IMMEDIATE
-    ' BRANCH ,
+    ['] BRANCH ,
     SWAP
     HERE @ - ,
     DUP
@@ -80,7 +80,7 @@
 ;
 
 : AGAIN IMMEDIATE
-    ' BRANCH ,
+    ['] BRANCH ,
     HERE @ -
     ,
 ;
@@ -117,9 +117,41 @@
 
 ( Compile the top of the stack as a literal like LIT <cell> )
 : LITERAL IMMEDIATE
-    ' LIT ,
+    ['] LIT ,
     ,
 ;
+
+: NOP ;
+: DEFER
+    WORD CREATE
+    DOCOL ,
+    ['] NOP ,
+    ['] EXIT ,
+;
+
+: '
+    WORD FIND >CFA
+;
+
+( TODO Redefine ['] )
+( TODO Look into ' and ['] again, also are they immediate? )
+
+: DEFER!
+    4 + !
+;
+
+: IS IMMEDIATE
+    STATE @ IF
+        ['] LIT ,
+        ' ,
+        ['] DEFER! ,
+    ELSE
+        ' DEFER!
+    THEN
+;
+
+DEFER KEY
+' (KEY) IS KEY
 
 (
     Define some literals for various characters used later on.
@@ -165,9 +197,9 @@
     WORD     ( read name of constant )
     CREATE   ( create header for new constant)
     DOCOL ,  ( append DOCOL codefield)
-    ' LIT ,  ( append LIT word)
+    ['] LIT ,  ( append LIT word)
     ,        ( append constant itself)
-    ' EXIT , ( append exit word)
+    ['] EXIT , ( append exit word)
 ;
 
 32 CONSTANT BL
@@ -199,9 +231,9 @@
     CELL ALLOT
     WORD CREATE
     DOCOL ,
-    ' LIT ,
+    ['] LIT ,
     ,
-    ' EXIT ,
+    ['] EXIT ,
 ;
 
 ( Store single byte at HERE )
@@ -236,7 +268,7 @@
 )
 : S" IMMEDIATE ( -- addr len )
     STATE @ IF ( Compiling )
-        ' LITSTRING ,
+        ['] LITSTRING ,
         HERE @ ( Save addr to length word )
         0 , ( Write undefined length )
         BEGIN
@@ -360,7 +392,7 @@ VARIABLE CURSOR-ATTR HEX 0F CURSOR-ATTR ! DECIMAL
 : ." IMMEDIATE ( -- )
     STATE @ IF ( Compiling )
             [COMPILE] S"
-            ' TYPE ,
+            ['] TYPE ,
     ELSE ( Immediate )
         BEGIN
             KEY

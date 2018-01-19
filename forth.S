@@ -451,8 +451,16 @@ defvar 'SOURCE-LEN', SOURCE_LEN
 defconst 'R0', RZ, rstack.top
 defconst 'DOCOL', __DOCOL, DOCOL
 
-;TODO >R
-;TODO R>
+defcode '>R', TOR
+    pop eax
+    PUSHRSP eax
+    NEXT
+
+defcode 'R>', FROMR
+    POPRSP eax
+    push eax
+    NEXT
+
 ;TODO RSP@
 
 defcode 'RSP!', RSPSTORE
@@ -676,12 +684,11 @@ defcode 'HIDDEN', HIDDEN
 
 ;TODO HIDE
 
-defcode "'", TICK
+defcode "[']", BTICK
     lodsd
     push eax
     NEXT
 
-;TODO LITSTRING
 ;TODO TELL
 ;TODO QUIT
 
